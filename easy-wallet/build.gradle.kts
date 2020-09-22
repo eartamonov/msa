@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
 	id("org.springframework.boot")
 	id("io.spring.dependency-management")
+	id("org.asciidoctor.convert")
 	kotlin("jvm")
 	kotlin("plugin.spring")
 }
@@ -15,9 +16,12 @@ repositories {
 	mavenCentral()
 }
 
+val snippetsDir by extra { file("build/generated-snippets") }
 extra["springCloudVersion"] = "Hoxton.SR8"
 
 dependencies {
+	implementation(project(":platform-common"))
+
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
 	implementation("org.springframework.boot:spring-boot-starter-hateoas")
@@ -39,11 +43,13 @@ dependencies {
 		exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
 	}
 	testImplementation("io.projectreactor:reactor-test")
+	testImplementation("org.springframework.restdocs:spring-restdocs-webtestclient")
 	testImplementation("org.springframework.security:spring-security-test")
 }
 
 dependencyManagement {
 	imports {
+		mavenBom("org.springframework.boot:spring-boot-dependencies:2.3.3.RELEASE")
 		mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
 	}
 }
@@ -57,4 +63,13 @@ tasks.withType<KotlinCompile> {
 		freeCompilerArgs = listOf("-Xjsr305=strict")
 		jvmTarget = "1.8"
 	}
+}
+
+tasks.test {
+	outputs.dir(snippetsDir)
+}
+
+tasks.asciidoctor {
+	inputs.dir(snippetsDir)
+	dependsOn(tasks.test)
 }
